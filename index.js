@@ -2,7 +2,8 @@ let WebSocketServer = require('ws').Server, wss = new WebSocketServer({port: 807
 let PLAYERS = [];
 let ROOMS = [];
 let CAPACITY = 2;
-let timeGame, timeGameStart;
+let timeout = 8000;
+let timer, startTime;
 
 function Room(id, capacity, safeSquares, data) {
     this.id = id;
@@ -115,25 +116,7 @@ wss.on('connection', function (ws, request, client) {
 
                             let turnedPlayer = room.players.find(e => e.num === 1);
 
-                            timeGameStart = setTimeout(function (){
-
-                                turnedPlayer.absence++;
-                                console.log(turnedPlayer.num + " Absence: " + turnedPlayer.absence);
-
-                                if(turnedPlayer.absence >= 3){
-
-                                    console.log(turnedPlayer.num + ": OUT!");
-
-                                    wss.SendDataToRoom(turnedPlayer.roomId, {
-                                        "__Type": "TurnSkipped",
-                                        "PlayerNumber": turnedPlayer.num
-                                    }, null);
-
-                                    turnedPlayer.deleted = 1;
-
-                                }
-
-                            }, 3000, turnedPlayer);
+                            startTimer(turnedPlayer, room);
 
                         }
                     } else {
@@ -149,7 +132,7 @@ wss.on('connection', function (ws, request, client) {
 
                 let room = new Room(msg.RoomID, CAPACITY, 1, {
                     "__Type": "RoomDataReq",
-                    "Turn": 0,
+                    "Turn": 1,
                     "Dice": 0,
                     "GameState": null
                 });
@@ -210,8 +193,7 @@ wss.on('connection', function (ws, request, client) {
 
         else if (msg.__Type === "RoomDataReq") {
 
-            clearTimeout(timeGameStart);
-            clearTimeout(timeGame);
+            clearTimeout(timer);
 
             let player = PLAYERS.find(e => e.ws === ws);
 
@@ -225,26 +207,8 @@ wss.on('connection', function (ws, request, client) {
 
                     let turnedPlayer = room.players.find(e => e.num === parseInt(msg.Turn));
 
-                    //Calculate Absence
-                    timeGame = setTimeout(function (){
-
-                        turnedPlayer.absence++;
-                        console.log(turnedPlayer.num + " Absence: " + turnedPlayer.absence);
-
-                        // if(turnedPlayer.absence >= 3){
-                        //
-                        //     console.log(turnedPlayer.num + ": OUT!");
-                        //
-                        //     wss.SendDataToRoom(turnedPlayer.roomId, {
-                        //         "__Type": "TurnSkipped",
-                        //         "PlayerNumber": turnedPlayer.num
-                        //     }, null);
-                        //
-                        //     turnedPlayer.deleted = 1;
-                        //
-                        // }
-
-                    }, 3000, turnedPlayer);
+                    //Calculate Player Absence
+                    startTimer(turnedPlayer, room);
 
                 }
 
@@ -265,6 +229,7 @@ wss.on('connection', function (ws, request, client) {
                     if (room) {
 
                         room.data.__Type = "PlayerBackRes";
+                        room.data.ElapsedTime = (new Date().getTime() - startTime)/1000;
                         ws.send(JSON.stringify(room.data));
 
                     }
@@ -291,7 +256,7 @@ wss.on('connection', function (ws, request, client) {
 
                 }
 
-            } else /* if(!player.deleted) */ {
+            } else if(!player.deleted) {
 
                 //Duplicate
 
@@ -381,8 +346,20 @@ wss.on('connection', function (ws, request, client) {
 
         }*/
 
+        PLAYERS.forEach(function (player) {
+            player = null;
+        });
+
+        ROOMS.forEach(function (room) {
+            room = null;
+        });
+
         PLAYERS = [];
         ROOMS = [];
+
+        clearTimeout(timer);
+
+
 
     })
 
@@ -397,6 +374,63 @@ function print(message) {
         date.getSeconds() + ":" +
         date.getMilliseconds() + " => " +
         message);
+
+}
+
+function nextTurn(players, turn){
+
+    let presentPlayers = [];
+
+    players.forEach(function (player, i) {
+        if (!player.deleted) {
+            presentPlayers[i] = player.num;
+        }
+    });
+
+    let index = presentPlayers.indexOf(turn);
+
+    if (index >= presentPlayers.length - 1)
+        index = 0;
+    else
+        index++;
+
+    return presentPlayers[index];
+
+}
+
+function startTimer(turnedPlayer, room, ) {
+
+    startTime = (new Date()).getTime();
+
+    timer = setTimeout(function (){
+
+        turnedPlayer.absence++;
+        console.log(turnedPlayer.num + " Absence: " + turnedPlayer.absence);
+
+        let newTurn = nextTurn(room.players, room.data.Turn);
+
+        wss.SendDataToRoom(turnedPlayer.roomId, {
+            "__Type": "TurnSkipped",
+            "GameState": room.data.GameState,
+            "Dice": room.data.Dice,
+            "Turn": newTurn
+        }, null);
+
+        room.data.Turn = newTurn;
+
+        if(turnedPlayer.absence >= 3){
+
+            turnedPlayer.deleted = 1;
+
+            wss.SendDataToRoom(turnedPlayer.roomId, {
+                "__Type": "ResignUpdate",
+                "PlayerNumber": turnedPlayer.num
+            }, null);
+
+            console.log(turnedPlayer.num + ": OUT!");
+        }
+
+    }, timeout, turnedPlayer);
 
 }
 
