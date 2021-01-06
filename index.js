@@ -398,39 +398,47 @@ function nextTurn(players, turn){
 
 }
 
-function startTimer(turnedPlayer, room, ) {
+function startTimer(player, room) {
+    if (player && !player.deleted) {
 
-    startTime = (new Date()).getTime();
+        startTime = (new Date()).getTime();
 
-    timer = setTimeout(function (){
+        timer = setTimeout(function () {
 
-        turnedPlayer.absence++;
-        console.log(turnedPlayer.num + " Absence: " + turnedPlayer.absence);
+            player.absence++;
+            console.log(player.num + " Absence: " + player.absence);
 
-        let newTurn = nextTurn(room.players, room.data.Turn);
+            let newTurn = nextTurn(room.players, room.data.Turn);
 
-        wss.SendDataToRoom(turnedPlayer.roomId, {
-            "__Type": "TurnSkipped",
-            "GameState": room.data.GameState,
-            "Dice": room.data.Dice,
-            "Turn": newTurn
-        }, null);
-
-        room.data.Turn = newTurn;
-
-        if(turnedPlayer.absence >= 3){
-
-            turnedPlayer.deleted = 1;
-
-            wss.SendDataToRoom(turnedPlayer.roomId, {
-                "__Type": "ResignUpdate",
-                "PlayerNumber": turnedPlayer.num
+            wss.SendDataToRoom(player.roomId, {
+                "__Type": "TurnSkipped",
+                "GameState": room.data.GameState,
+                "Dice": room.data.Dice,
+                "Turn": newTurn
             }, null);
 
-            console.log(turnedPlayer.num + ": OUT!");
-        }
+            room.data.Turn = newTurn;
+            room.data.ElapsedTime = 0;
 
-    }, timeout, turnedPlayer);
+            if (player.absence >= 3) {
+
+                player.deleted = 1;
+
+                wss.SendDataToRoom(player.roomId, {
+                    "__Type": "ResignUpdate",
+                    "PlayerNumber": player.num
+                }, null);
+
+                console.log(player.num + ": OUT!");
+            }
+
+            //start new round for next player
+            let playerNum = nextTurn(room.players, room.data.Turn);
+            clearTimeout(timer);
+            startTimer(room.players.find(e => e.num === playerNum), room);
+
+        }, timeout, player);
+    }
 
 }
 
