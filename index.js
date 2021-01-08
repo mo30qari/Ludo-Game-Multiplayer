@@ -25,7 +25,7 @@ function Player(ws, id, roomId, num, ready, absence, deleted) {
 
 wss.SendDataToRoom = function broadcast(toRoomID, data, fromPlayer) {
 
-    if((fromPlayer && !fromPlayer.deleted) || fromPlayer === null) {
+    if ((fromPlayer && !fromPlayer.deleted) || fromPlayer === null) {
 
         wss.clients.forEach(function each(client) {
 
@@ -71,7 +71,8 @@ wss.on('connection', function (ws, request, client) {
 
                     if (room.capacity > room.players.length) {
 
-                        let player = new Player(ws, msg.PlayerID, msg.RoomID, room.players.length + 1, 1, 0, 0);0
+                        let player = new Player(ws, msg.PlayerID, msg.RoomID, room.players.length + 1, 1, 0, 0);
+                        0
 
                         room.players.push(player);
 
@@ -229,7 +230,7 @@ wss.on('connection', function (ws, request, client) {
                     if (room) {
 
                         room.data.__Type = "PlayerBackRes";
-                        room.data.ElapsedTime = (new Date().getTime() - startTime)/1000;
+                        room.data.ElapsedTime = (new Date().getTime() - startTime) / 1000;
                         ws.send(JSON.stringify(room.data));
 
                     }
@@ -256,7 +257,7 @@ wss.on('connection', function (ws, request, client) {
 
                 }
 
-            } else if(!player.deleted) {
+            } else if (!player.deleted) {
 
                 //Duplicate
 
@@ -360,7 +361,6 @@ wss.on('connection', function (ws, request, client) {
         clearTimeout(timer);
 
 
-
     })
 
 });
@@ -377,7 +377,7 @@ function print(message) {
 
 }
 
-function nextTurn(players, turn){
+function nextTurn(players, turn) {
 
     let presentPlayers = [];
 
