@@ -1,7 +1,7 @@
 let WebSocketServer = require('ws').Server, wss = new WebSocketServer({port: 8070});
 let PLAYERS = [];
 let ROOMS = [];
-let CAPACITY = 2;
+let CAPACITY = 3;
 let timeout = 8000;
 let timer, startTime;
 
@@ -88,7 +88,7 @@ wss.on('connection', function (ws, request, client) {
                                 "SafeSquares": room.safeSquares,
                                 "PlayerNumber": player.num,
                                 "Player": {
-                                    "Name": "Ali",
+                                    "Nickname": "Ali",
                                     "Avatar": 254
                                 }
                             }));
@@ -105,11 +105,11 @@ wss.on('connection', function (ws, request, client) {
                                 "__Type": "GameStart",
                                 "Players": [
                                     {
-                                        "Name": "Ali",
+                                        "Nickname": "Ali",
                                         "Avatar": ""
                                     },
                                     {
-                                        "Name": "Mosi",
+                                        "Nickname": "Mosi",
                                         "Avatar": ""
                                     },
                                 ]
@@ -156,7 +156,7 @@ wss.on('connection', function (ws, request, client) {
                         "SafeSquares": room.safeSquares,
                         "PlayerNumber": player.num,
                         "Player": {
-                            "Name": "Ali",
+                            "Nickname": "Ali",
                             "Avatar": 254
                         }
                     }));
